@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<th:block th:replace="~{/layout/basic :: setContent(~{this::content} )}">
+
+    <th:block th:fragment="content">
+
+        <h1 class="mt-4">Board Read Page</h1>
+
+        <div class="form-group">
+            <label >번호</label>
+            <input type="text" class="form-control" th:value="${dto.no}" readonly >
+        </div>
+
+        <div class="form-group">
+            <label >제목</label>
+            <input type="text" class="form-control" th:value="${dto.title}" readonly >
+        </div>
+        <div class="form-group">
+            <label >내용</label>
+            <textarea class="form-control" rows="5" readonly>[[${dto.content}]]</textarea>
+        </div>
+        <div class="form-group">
+            <label >작성자</label>
+            <input type="text" class="form-control" th:value="${dto.writer}" readonly>
+        </div>
+        <div class="form-group">
+            <label >등록일</label>
+            <input type="text" class="form-control" th:value="${#temporals.format(dto.regDate, 'yyyy/MM/dd HH:mm:ss')}" readonly>
+        </div>
+        <div class="form-group">
+            <label >수정일</label>
+            <input type="text" class="form-control" th:value="${#temporals.format(dto.modDate, 'yyyy/MM/dd HH:mm:ss')}" readonly>
+        </div>
+
+        <!-- 댓글 -->
+       <div class="card shadow mb-4" style="margin-top:10px">
+           <div class="card-header py-3">
+               <h6 class="m-0 font-weight-bold text-primary">댓글보기</h6>
+           </div>
+           <div class="card-body" id="commentdiv">
+           </div>
+           <div class="card-body">
+               <textarea class="form-control" id="commentContent" rows="3"></textarea>
+               <button type="button" class="btn btn-secondary" onclick="registerComment()">댓글등록</button>
+           </div>
+       </div>
+        <!-- 댓글 끝 -->
+
+        <a th:href="@{/board/modify(no = ${dto.no})}">
+        	<button type="button" class="btn btn-primary">수정</button>
+        </a>
+
+        <a th:href="@{/board/list(page=${page})}">
+            <button type="button" class="btn btn-info">목록으로</button>
+        </a>
+
+        <!-- 댓글 이벤트 처리 -->
+       <script th:inline="javascript">
+       		
+       
+       		//HTML문서가 만들어질때, showComment함수를 호출
+       		$(document).ready(function() {
+       			showComment();
+       		})
+       		
+       		//댓글 목록을 출력하는 메소드
+      		function showComment() {
+      			//해당 게시물의 정보
+      			var board = [[${dto}]]; 
+      			let comment_div = $('#commentdiv'); //댓글 엘리먼트 객체
+      			
+      			// GET + /comment/list?boardNo=1
+      			$.ajax({
+      					
+      				type: "GET",
+      				url: "/comment/list?boardNo="+board.no,
+      				success: function(commentlist){
+       		    	  if(commentlist){
+       		    		  
+       		    		  comment_div.empty(); //자식 엘리먼트 모두 지우기
+       		    	
+       		    		  for(i in commentlist){
+       		    			 let comment = commentlist[i];
+       		    			 let writer_span = '<span class="fw-bold strong mar">'+comment.writer+'</span>';
+       		    			 let content_span = '<span class="mar"> '+comment.content+' </span>';
+       		    			 let delete_btn = '<a href="javascript:removeComment('+comment.commentNo+')">삭제</a>';
+       		    			 let comment_html = writer_span + content_span + delete_btn + '</br>';
+       		    			 comment_div.append(comment_html);
+       		    		  }
+       		    	  }
+       		        }
+      			
+      			});
+      		}
+       		
+       		//새로운 댓글 등록
+       		function registerComment() {
+       			//서버에서 전달받은 게시물정보
+       			var board = [[${dto}]];
+       			//입력필드 엘리먼트 객체
+       			let commentContent = document.getElementById("commentContent");
+       			//댓글 정보를 json객체로 생성
+       			let commentDto = 
+       			{
+       				'boardNo' : board.no, //게시물번호
+       				'content' : commentContent.value //댓글 내용
+       			}
+       		//댓글 등록 요청
+       		$.ajax({
+       			type: "POST",
+       			url: "/comment/register",
+       			data: commentDto,
+       			success: function(response) {
+       				commentContent.value = null;
+       				showComment(); // 다시 호출해서 화면을 갱신
+       			}
+       		});
+       	}
+       		//특정 댓글 삭제하는 함수
+       		function removeComment(commentNo) {
+       			
+       		$.ajax({
+       			type: "DELETE",
+       			url: "/comment/remove?commentNo="+commentNo,
+       						
+       			success: function(response) {
+       				if(response) {
+       					showComment(); //화면을 갱신
+       					}
+       				}
+       			});
+       		}
+       		
+		</script>
+
+    </th:block>
+
+</th:block>
